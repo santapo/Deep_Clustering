@@ -1,0 +1,4 @@
+numpy
+glob
+opencv2
+scikit-learn
