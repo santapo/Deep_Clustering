@@ -1,5 +1,6 @@
+tqdm
+matplotlib
 numpy
-glob
-opencv2
+opencv-python
 scikit-learn
 tensorboardX
