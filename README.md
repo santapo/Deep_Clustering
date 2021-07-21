@@ -12,3 +12,8 @@ Goal:
 
 Reference: 
 https://www.youtube.com/watch?v=0m5GNDo-CFM
+
+Evaluation Metric:
+- Accuracy for each kmeans configuration
+- Confusion
+- Elbow

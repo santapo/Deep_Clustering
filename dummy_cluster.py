@@ -1,16 +1,22 @@
 import os
+import sys
 import glob
 import cv2
 import argparse
+import logging
 from tqdm import tqdm
 
+from typing import List
+
 import numpy as np
+from matplotlib import pyplot as plt
 
 from sklearn.cluster import KMeans
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from tensorboardX import SummaryWriter
 
-from tqdm import tqdm
+logger = logging.getLogger()
 
 CLASS_ID = {
     'butterfly' : 0,
@@ -51,15 +57,18 @@ def data_preprocess(data_path: str):
 
     return flatten_images, all_labels
 
-def dummy_cluster(embb_vec):
+def dummy_cluster(embb_vec: np.ndarray,
+                num_clusters: int):
     """
     Using Kmeans to cluster embbeding vector from raw images
     """
-    kmeans = KMeans(n_clusters=8, random_state=42)
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42, verbose=1)
     clusters = kmeans.fit_predict(embb_vec)
-    return clusters
+    sum_squared = kmeans.inertia_
+    return clusters, sum_squared
 
-def get_cluster_class(all_labels, clusters):
+def get_cluster_class(all_labels: np.ndarray,
+                        clusters: np.ndarray) -> np.ndarray:
     """
     Get the class that refer to each cluster.
     Class that have the most instances in a cluster will be
@@ -72,7 +81,8 @@ def get_cluster_class(all_labels, clusters):
         ref_classes[i] = cluster_cls
     return ref_classes
 
-def get_class(ref_classes, clusters):
+def get_class(ref_classes: np.ndarray,
+                clusters: np.ndarray) -> np.ndarray:
     """
     Get actual class for each instances
     """
@@ -81,14 +91,19 @@ def get_class(ref_classes, clusters):
         pred_classes[i] = ref_classes[clusters[i]]
     return pred_classes
 
-def main(args):
-    flatten_images, all_labels = data_preprocess(args.data_path)
-    clusters = dummy_cluster(embb_vec=flatten_images)
-    ref_classes = get_cluster_class(all_labels, clusters)
-    predicted = get_class(ref_classes, clusters)
+def plot_fig(confusion_matrix: np.ndarray,
+            class_name: List[str]) -> plt.figure:
 
-    print(accuracy_score(all_labels, predicted))
-    print(confusion_matrix(all_labels, predicted))
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(confusion_matrix, interpolation='nearest')
+
+    ax.set_xticklabels(['']+class_name)
+    ax.set_yticklabels(['']+class_name)
+    fig.colorbar(cax)
+
+    return fig
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -96,12 +111,36 @@ if __name__ == '__main__':
                         help='Path to data directory')
     parser.add_argument('--exp_name', type=str, default='default',
                         help='Set experiment directory name')
+    parser.add_argument('--min_cluster', type=int, default=8,
+                        help='Min number of clusters')
+    parser.add_argument('--max_cluster', type=int, default=10,
+                        help='Max number of clusters')
     
     args = parser.parse_args()
+    
+    # Setting up logging tools
+    exp_dir = os.path.join(os.getcwd(), 'exps', args.exp_name)
+    sys.stdout = open(os.path.join(exp_dir, 'log.txt'), 'w')
+    writer = SummaryWriter(exp_dir)
+    
+    # Run KMeans
+    class_name = list(CLASS_ID)
+    flatten_images, all_labels = data_preprocess(args.data_path)
+    for n in range(args.min_cluster, args.max_cluster + 1):
+        logger.info(f'KMeans with {n} clusters')
+        clusters, sum_squared = dummy_cluster(embb_vec=flatten_images, num_clusters=n)
+        ref_classes = get_cluster_class(all_labels, clusters)
+        predicted = get_class(ref_classes, clusters)
+        
+        acc = accuracy_score(all_labels, predicted)
+        cm = confusion_matrix(all_labels, predicted)
+        cm_fig = plot_fig(cm, class_name)
 
-    main(args)
-
-
+        writer.add_scalar('Accuracy', acc, n)
+        writer.add_scalar('Elbow', sum_squared, n)
+        writer.add_figure(tag='Confusion Matrix', figure=cm_fig, global_step=n)
+    
+    sys.stdout.close()
 
 
 
