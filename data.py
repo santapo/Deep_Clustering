@@ -16,6 +16,7 @@ class DeepClusteringDataModule(pl.LightningDataModule):
                 num_workers: int = 4,
                 image_size: Tuple[int, int] = (224, 224)):
         
+        super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers

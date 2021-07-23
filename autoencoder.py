@@ -1,6 +1,4 @@
 import torch.nn as nn
-from torch import Tensor
-
 from torchvision import models
 
 class Encoder(nn.Module):
@@ -58,7 +56,6 @@ class Decoder(nn.Module):
 
     def __init__(self, encoder):
         super(Decoder, self).__init__()
-
         self.decoder = self._invert_(encoder)
 
     def forward(self, x, pool_indices):
@@ -114,7 +111,6 @@ class AutoEncoder(nn.Module):
 
     def __init__(self, pretrained=True):
         super(AutoEncoder, self).__init__()
-
         self.encoder = Encoder(pretrained=pretrained)
         self.decoder = Decoder(self.encoder.encoder)
 
@@ -124,4 +120,9 @@ class AutoEncoder(nn.Module):
 
         return x_prime
 
-
+if __name__ == '__main__':
+    import torch
+    inp = torch.rand(1,3,224,224)
+    model = AutoEncoder(pretrained=True)
+    res = model(inp)
+    print(model)
