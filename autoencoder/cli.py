@@ -1,3 +1,6 @@
+import sys
+sys.path.append("..")
+
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import LightningCLI
 
