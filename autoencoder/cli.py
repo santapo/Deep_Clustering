@@ -15,7 +15,7 @@ class AutoEncoderTrainingCLI(LightningCLI):
     """
     def add_callbacks(self):
         save_checkpoint = ModelCheckpoint(dirpath=None,
-                                          filename='{epoch}-{step}-{validation_loss:.2f}-{validation_F1:.2f}',
+                                          filename='{epoch}-{step}-{val_loss:.2f}',
                                           save_top_k=-1)
         self.config_init['trainer']['callbacks'] = [save_checkpoint]
 
