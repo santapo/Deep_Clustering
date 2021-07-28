@@ -5,8 +5,10 @@ class Encoder(nn.Module):
     channels_in = 3
     channels_code = 512
 
-    def __init__(self,
-                pretrained: bool = True):
+    def __init__(
+        self,
+        pretrained: bool = True
+    ):
         super(Encoder, self).__init__()
 
         vgg = models.vgg16_bn(pretrained=pretrained)
@@ -119,6 +121,31 @@ class AutoEncoder(nn.Module):
         x_prime = self.decoder(code, pool_indices)
 
         return x_prime
+
+class EncoderMerged(Encoder):
+    def __init__(
+        self,
+        merger_type=None,
+        pretrained=True
+    ):
+        super(EncoderMerged, self).__init__(pretrained=pretrained)
+        if merger_type is None:
+            self.code_post_process = lambda x: x
+            self.code_post_process_kwargs = {}
+        elif merger_type == 'mean':
+            self.code_post_process = torch.mean
+            self.code_post_process_kwargs = {'dim': (-2, -1)}
+        elif merger_type == 'flatten':
+            self.code_post_process = torch.flatten
+            self.code_post_process_kwargs = {'start_dim': 1, 'end_dim': -1}
+        else:
+            raise ValueError('Unknown merger type for the encoder code: {}'. format(merger_type))
+
+    def forward(self, x):
+        x_current = super().forward(x)
+        x_code = self.code_post_process(x_current, **self.code_post_process_kwargs)
+
+        return x_code        
 
 if __name__ == '__main__':
     import torch
